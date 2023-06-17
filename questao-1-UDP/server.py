@@ -12,18 +12,18 @@ class EstatisticaQuestoes:
         else:
             self.questoes[numero_questao] = [acertos, erros]
 
-    def pegarEsatatistica(self):
+    def pegarEstatistica(self):
         estatisticas = "Estatísticas:\n"
         for questao, resultado in self.questoes.items():
             acertos, erros = resultado
             estatisticas += f"Questão {questao}: acertos={acertos} erros={erros}\n"
         return estatisticas
 
-def handle_client(sock, addr, estatisticas):
-    print(f"Conexão estabelecida com {addr}")
+def handle_client(conexao, endereco, estatisticas):
+    print(f"Conexão estabelecida com {endereco}")
 
     while True:
-        data, _ = sock.recvfrom(1024)
+        data = conexao.recv(1024)
         if not data:
             break
 
@@ -36,23 +36,24 @@ def handle_client(sock, addr, estatisticas):
         estatisticas.adicionarRes(numero_questao, acertos, erros)
 
         resServer = f"{numero_questao};{acertos};{erros}"
-        sock.sendto(resServer.encode("utf-8"), addr)
+        conexao.send(resServer.encode("utf-8"))
 
-    print(f"Conexão encerrada com {addr}")
+    print(f"Conexão encerrada com {endereco}")
+    conexao.close()
 
 
-HOST = "127.0.0.1"  
-PORT = 5000        
+HOST = "127.0.0.1"
+PORT = 5000
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.bind((HOST, PORT))
+sock.listen(5)
 
-print("Server run")
+print("Servidor em execução")
 
 estatisticas = EstatisticaQuestoes()
 
 while True:
-    data, addr = sock.recvfrom(1024)
-
-    client_thread = threading.Thread(target=handle_client, args=(sock, addr, estatisticas))
+    conexao, endereco = sock.accept()
+    client_thread = threading.Thread(target=handle_client, args=(conexao, endereco, estatisticas))
     client_thread.start()
